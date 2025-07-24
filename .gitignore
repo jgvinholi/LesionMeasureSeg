@@ -1,0 +1,48 @@
+
+**/out/
+**/mlruns/
+**/mlflow_artifacts/
+# Byte-compiled / optimized / package files
+**/__pycache__/
+**/.mypy_cache/
+**.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+.DS_Store
+build/
+dist/
+sdist/
+wheel/
+*.egg-info/
+.eggs/
+*.whl
+**/.venv/
+*.ruff_cache/
+
+# IDE / editor specific files
+.idea/
+.vscode/
+*.swp
+*~
+*.pydev
+*.ipdb
+.ipynb_checkpoints/
+
+# OS generated files
+.Trash/
+Thumbs.db
+
+# Test reports and temporary files
+test_*.log
+*.coverage
+.pytest_cache/
+
+# Other files to ignore
+env/
+venv/
+*.log
+*.bak
+*.tmp
+*.DS_Store
