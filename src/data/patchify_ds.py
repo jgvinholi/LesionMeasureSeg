@@ -186,13 +186,38 @@ def patchify_folder(
 # -----------------------------------------------------------------------------
 # 4. Train/val split *before* patchification (dict‑style)
 # -----------------------------------------------------------------------------
+def downsample(
+    arr: np.ndarray,   # image or label
+    factor: int = 8,
+    *,
+    is_label: bool = False,
+) -> np.ndarray:
+    """
+    Downsample an array.  Lanczos for images, nearest for label maps.
+    """
+    if factor <= 1:
+        return arr
+
+    h, w = arr.shape[:2]
+    new_size = (w // factor, h // factor)
+
+    pil_kwargs = (
+        dict(resample=Image.Resampling.NEAREST)
+        if is_label else
+        dict(resample=Image.Resampling.LANCZOS, reducing_gap=3.0)
+    )
+
+    mode = "L" if is_label else None        # RGB inferred if mode=None
+    arr_pil = Image.fromarray(arr, mode=mode)
+    return np.asarray(arr_pil.resize(new_size, **pil_kwargs))
+
 
 def prepare_dataset_from_dict(
     simplified: dict[str, dict[str, np.ndarray]],
     patch_size: int,
     overlap: int = 0,
-    *,
     train_ratio: float = 0.8,
+    downsampling_factor: int = 8,
     seed: int | None = 42,
     output_root: Path | str = "dataset",
 ) -> None:
@@ -220,8 +245,8 @@ def prepare_dataset_from_dict(
 
     for fname in tqdm(filenames, desc="Preparing dataset", unit="img"):
         item = simplified[fname]
-        img = item["image"]
-        lbl = item["annotation"]
+        img = downsample(item["image"], factor=downsampling_factor)
+        lbl = downsample(item["annotation"], factor=downsampling_factor, is_label=True)
 
         target_full_dir = subdirs["full_train"] if fname in train_files else subdirs["full_val"]
         _save_patch(img, target_full_dir / f"{fname}.png")
@@ -248,16 +273,16 @@ if __name__ == "__main__":
     p_folder = subparsers.add_parser("folder", help="Patchify two directories of images/labels")
     p_folder.add_argument("images_dir", type=Path)
     p_folder.add_argument("labels_dir", type=Path)
-    p_folder.add_argument("--patch_size", type=int, default=256)
+    p_folder.add_argument("--patch_size", type=int, default=512)
     p_folder.add_argument("--overlap", type=int, default=0)
     p_folder.add_argument("--output_root", type=Path, default=Path("patches"))
     p_folder.add_argument("--no_progress", action="store_true")
 
     # Sub‑command: pkl (expects a pickle file holding the 'simplified' dict)
-    p_pkl = subparsers.add_parser("pkl", help="Prepare dataset from a pickle‑serialized 'simplified' mapping")
+    p_pkl = subparsers.add_parser("pkl", help="Prepare dataset from a pickle-serialized 'simplified' mapping")
     p_pkl.add_argument("simplified_pkl", type=Path)
-    p_pkl.add_argument("--patch_size", type=int, default=256)
-    p_pkl.add_argument("--overlap", type=int, default=0)
+    p_pkl.add_argument("--patch_size", type=int, default=512)
+    p_pkl.add_argument("--overlap", type=int, default=384)
     p_pkl.add_argument("--train_ratio", type=float, default=0.8)
     p_pkl.add_argument("--output_root", type=Path, default=Path("dataset"))
 
